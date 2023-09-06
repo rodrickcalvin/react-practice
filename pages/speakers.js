@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useReducer, useState } from "react";
+import React, { useCallback, useContext, useEffect, useReducer, useState } from "react";
 
 import { Header } from '../components/Header';
 import { Menu } from '../components/Menu';
@@ -12,15 +12,38 @@ const SpeakersPage = ({ }) => {
   const [speakingSaturday, setSpeakingSaturday] = useState(true);
   const [speakingSunday, setSpeakingSunday] = useState(true);
 
+  const speakersReducer = (state, action) => {
+    const updateFavorite = (favoriteValue) => {
+      return state.map((item, index) => {
+        if (item.id === action.sessionId) {
+          item.favorite = favoriteValue;
+          return item;
+        }
+        return item;
+      })
+    }
+
+    switch (action.type) {
+      case 'setSpeakerList': {
+        return action.data
+      }
+      case 'favorite': {
+        return updateFavorite(true)
+      }
+      case 'unfavorite': {
+        return updateFavorite(false)
+      }
+      default:
+        return state
+    }
+  }
+
+
   // const [speakerList, setSpeakerList] = useState([]);
-  const [speakerList, setSpeakerList] = useReducer((state, action) => action, []);  
+  const [speakerList, dispatch] = useReducer(speakersReducer, []);  
   const [isLoading, setIsLoading] = useState(true);
 
   const context = useContext(ConfigContext);
-
-  // const speakersReducer(state, action) {
-  //   return action
-  // }
 
 
   useEffect(() => {
@@ -28,8 +51,16 @@ const SpeakersPage = ({ }) => {
     new Promise((resolve) => {
       setTimeout(() => resolve(), 1000);
     }).then(() => {
-      setSpeakerList(speakerData)
+      // setSpeakerList(speakerData)
+      const speakerListServerFilter = speakerData.filter(({ sat, sun }) => {
+        return (speakingSaturday && sat) || (speakingSunday && sun);
+      })
       setIsLoading(false)
+
+      dispatch({
+        type: 'setSpeakerList',
+        data: speakerListServerFilter
+      }) // force rerender
     })
 
     return () => {
@@ -62,18 +93,23 @@ const SpeakersPage = ({ }) => {
       });
 
 
-  const heartFavoriteHandler = (e, favoriteValue) => {
+  const heartFavoriteHandler = useCallback((e, favoriteValue) => {
     e.preventDefault();
     const sessionId = parseInt(e.target.attributes['data-sessionid'].value);
-    setSpeakerList(
-      speakerList.map((item) => {
-        if (item.id === sessionId) {
-          return { ...item, favorite: favoriteValue };
-        }
-        return item;
-      }),
-    );
-  };
+
+    dispatch ({
+      type: favoriteValue === true ? 'favorite' : 'unfavorite',
+      sessionId
+    })
+    // setSpeakerList(
+    //   speakerList.map((item) => {
+    //     if (item.id === sessionId) {
+    //       return { ...item, favorite: favoriteValue };
+    //     }
+    //     return item;
+    //   }),
+    // );
+  }, []);
 
   if (isLoading) return <div>Loading...</div>
 
