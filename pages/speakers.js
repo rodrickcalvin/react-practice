@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useReducer, useState } from "react";
+import React, { useCallback, useContext, useEffect, useMemo, useReducer, useState } from "react";
 
 import { Header } from '../components/Header';
 import { Menu } from '../components/Menu';
@@ -76,21 +76,25 @@ const SpeakersPage = ({ }) => {
     setSpeakingSunday(!speakingSunday);
   };
 
+  const newSpeakerList = useMemo(() => speakerList.filter ( 
+    ({ sat, sun }) =>
+      (speakingSaturday && sat) || (speakingSunday && sun),
+    )
+    .sort(function (a, b) {
+      if (a.firstName < b.firstName) {
+        return -1;
+      }
+      if (a.firstName > b.firstName) {
+        return 1;
+      }
+      return 0;
+    }),
+    [speakingSaturday, speakingSunday, speakerList]
+  )
+
   const speakerListFiltered = isLoading
     ? []
-    : speakerList.filter(
-      ({ sat, sun }) =>
-        (speakingSaturday && sat) || (speakingSunday && sun),
-    )
-      .sort(function (a, b) {
-        if (a.firstName < b.firstName) {
-          return -1;
-        }
-        if (a.firstName > b.firstName) {
-          return 1;
-        }
-        return 0;
-      });
+    : newSpeakerList;
 
 
   const heartFavoriteHandler = useCallback((e, favoriteValue) => {
